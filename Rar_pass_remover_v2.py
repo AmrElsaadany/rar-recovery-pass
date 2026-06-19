@@ -171,64 +171,70 @@ class RarRecoveryApp:
         self.stop_btn.config(state="normal")
         
         threading.Thread(target=self.recovery_loop, daemon=True).start()
+
     def recovery_loop(self):
-                                        mode = self.attack_mode.get()
-                                        found = False
-                                        final_pwd = ""
+        mode = self.attack_mode.get()
+        found = False
+        final_pwd = ""
 
-                                        if mode == "numeric":
-                                                pwd_num = 1
-                                                while self.is_running:
-                                                        pwd = str(pwd_num)
-                                                        self.status_msg.set(f"Testing: {pwd}")
-                                                        if self.test_password(pwd):
-                                                                found, final_pwd = True, pwd
-                                                                break
-                                                        pwd_num += 1
+        if mode == "numeric":
+            pwd_num = 1
+            while self.is_running:
+                pwd = str(pwd_num)
+                self.status_msg.set(f"Testing: {pwd}")
+                if self.test_password(pwd):
+                    found, final_pwd = True, pwd
+                    break
+                pwd_num += 1
 
-                                        elif mode == "dict":
-                                                try:
-                                                        with open(self.wordlist_path.get(), 'r', encoding='utf-8', errors='ignore') as f:
-                                                                for line in f:
-                                                                        if not self.is_running:
-                                                                                break
-                                                                        pwd = line.strip()
-                                                                        self.status_msg.set(f"Testing: {pwd}")
-                                                                        if self.test_password(pwd):
-                                                                                found, final_pwd = True, pwd
-                                                                                break
-                                                except Exception as e:
-                                                        self.root.after(0, lambda: messagebox.showerror("Error", f"Could not read wordlist: {e}"))
+        elif mode == "dict":
+            try:
+                with open(self.wordlist_path.get(), 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        if not self.is_running:
+                            break
+                        pwd = line.strip()
+                        self.status_msg.set(f"Testing: {pwd}")
+                        if self.test_password(pwd):
+                            found, final_pwd = True, pwd
+                            break
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror("Error", f"Could not read wordlist: {e}"))
 
-                                        elif mode == "alpha":
-                                                charset = string.ascii_letters + string.digits + string.punctuation
-                                                start_len = int(self.min_len.get())
-                                                end_len = int(self.max_len.get())
+        elif mode == "alpha":
+            charset = string.ascii_letters + string.digits + string.punctuation
+            start_len = int(self.min_len.get())
+            end_len = int(self.max_len.get())
 
-                                                for length in range(start_len, end_len + 1):
-                                                        if not self.is_running or found:
-                                                                break
-                                                        for item in itertools.product(charset, repeat=length):
-                                                                if not self.is_running:
-                                                                        break
-                                                                pwd = "".join(item)
-                                                                self.status_msg.set(f"Testing: {pwd}")
-                                                                if self.test_password(pwd):
-                                                                        found, final_pwd = True, pwd
-                                                                        break
+            for length in range(start_len, end_len + 1):
+                if not self.is_running or found:
+                    break
+                for item in itertools.product(charset, repeat=length):
+                    if not self.is_running:
+                        break
+                    pwd = "".join(item)
+                    self.status_msg.set(f"Testing: {pwd}")
+                    if self.test_password(pwd):
+                        found, final_pwd = True, pwd
+                        break
 
-                                        # UI cleanup reset
-                                        self.is_running = False
-                                        self.start_btn.config(state="normal")
-                                        self.stop_btn.config(state="disabled")
+        # UI cleanup reset
+        self.is_running = False
+        self.start_btn.config(state="normal")
+        self.stop_btn.config(state="disabled")
 
-                                        if found:
-                                                self.status_msg.set(f"[SUCCESS] Found Password: {final_pwd}")
-                                                self.root.after(0, lambda: messagebox.showinfo("Success!", f"Password Found: {final_pwd}"))
-                                                self.open_target_file()
-                                        else:
-                                                if not self.is_running:
-                                                        self.status_msg.set("Process stopped by user.")
-                                                else:
-                                                        self.status_msg.set("Process finished. Password not discovered.")
-                        
+        if found:
+            self.status_msg.set(f"[SUCCESS] Found Password: {final_pwd}")
+            self.root.after(0, lambda: messagebox.showinfo("Success!", f"Password Found: {final_pwd}"))
+            self.open_target_file()
+        else:
+            if not self.is_running:
+                self.status_msg.set("Process stopped by user.")
+            else:
+                self.status_msg.set("Process finished. Password not discovered.")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = RarRecoveryApp(root)
+    root.mainloop()
